@@ -1,0 +1,21 @@
+func GetUserWithConfiguration(userID uuid.UUID) *querycruntime.Query[GetUserWithConfigurationResult] {
+	return &querycruntime.Query[GetUserWithConfigurationResult]{
+		SQL: `SELECT
+  users.*,
+  user_configurations.*,
+  jsonb_build_object('notifications_enabled', uc.email_notifications, 'timezone', uc.timezone) AS preferences
+FROM users
+LEFT JOIN user_configurations uc ON uc.user_id = users.user_id
+WHERE users.user_id = $1;`,
+		StmtName: "GetUserWithConfiguration",
+		Args: []any{
+			userID,
+		},
+	}
+}
+
+type GetUserWithConfigurationResult struct {
+	User              schemas.User                        `db:"User" table:"users"`
+	UserConfiguration *schemas.UserConfiguration          `db:"UserConfiguration" table:"user_configurations"`
+	Preferences       GetUserWithConfigurationPreferences `db:"preferences" queryc:"json"`
+}

@@ -1,0 +1,84 @@
+package codegen
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/AlexJarrah/queryc/internal/model"
+)
+
+func TestGenerateReturnsErrorOnInvalidGo(t *testing.T) {
+	// Supply a query with a name that is not a valid Go identifier.
+	// This should cause go/format to fail and Generate must return an error.
+	queries := []model.AnalyzedQuery{
+		{
+			Query: model.Query{
+				Name: "123-invalid-name",
+				SQL:  "SELECT 1",
+			},
+			ShouldEmitResult: false,
+		},
+	}
+
+	schema := model.Schema{Tables: map[string]model.Table{}}
+	_, err := Generate(schema, nil, queries, model.DialectPostgres)
+	if err == nil {
+		t.Fatal("expected Generate to return an error for invalid Go identifier, got nil")
+	}
+}
+
+func TestGenerateRejectsCollidingGeneratedTableNames(t *testing.T) {
+	schema := model.Schema{Tables: map[string]model.Table{
+		"user": {
+			Name:    "user",
+			Columns: map[string]model.Column{"id": {Name: "id", SQLType: "INTEGER"}},
+		},
+		"users": {
+			Name:    "users",
+			Columns: map[string]model.Column{"id": {Name: "id", SQLType: "INTEGER"}},
+		},
+	}}
+
+	imports := []model.Import{{Path: "example.com/schemas", Alias: "schemas", Schema: true}}
+	if _, err := Generate(schema, imports, nil, model.DialectPostgres); err == nil {
+		t.Fatal("expected colliding singular table names to be rejected")
+	}
+}
+
+func TestGenerateRejectsCollidingQueryArguments(t *testing.T) {
+	queries := []model.AnalyzedQuery{{
+		Query: model.Query{
+			Name:   "Search",
+			SQL:    "SELECT 1",
+			Params: []model.Param{{Name: "params", Type: "string"}},
+			Hashtags: []model.Hashtag{{
+				Name: "params",
+				Type: "string",
+			}},
+		},
+	}}
+
+	schema := model.Schema{Tables: map[string]model.Table{}}
+	if _, err := Generate(schema, nil, queries, model.DialectPostgres); err == nil {
+		t.Fatal("expected colliding query arguments to be rejected")
+	}
+}
+
+func TestGenerateExplainsInvalidResultField(t *testing.T) {
+	queries := []model.AnalyzedQuery{{
+		Query:            model.Query{Name: "Count", SQL: "SELECT 1"},
+		ShouldEmitResult: true,
+		ResultStructName: "CountResult",
+		Fields: []model.ResultField{{
+			Name:   "1",
+			DBName: "1",
+			GoType: "int64",
+		}},
+	}}
+
+	schema := model.Schema{Tables: map[string]model.Table{}}
+	_, err := Generate(schema, nil, queries, model.DialectPostgres)
+	if err == nil || !strings.Contains(err.Error(), "add a valid SQL alias") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

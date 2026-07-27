@@ -1,0 +1,106 @@
+package app
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/AlexJarrah/queryc/internal/model"
+)
+
+func TestWriteFileAtomically(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "generated.go")
+	if err := os.WriteFile(path, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := writeFileAtomically(path, []byte("new"), 0o644); err != nil {
+		t.Fatalf("writeFileAtomically() error = %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "new" {
+		t.Fatalf("content = %q, want new", got)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotMode := info.Mode().Perm(); gotMode != 0o644 {
+		t.Fatalf("mode = %o, want 644", gotMode)
+	}
+}
+
+func TestWriteFileAtomicallyDoesNotReplaceOutputOnRenameFailure(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "output")
+	if err := os.Mkdir(path, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := writeFileAtomically(path, []byte("new"), 0o644); err == nil {
+		t.Fatal("expected rename over directory to fail")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.IsDir() {
+		t.Fatal("existing output directory was replaced")
+	}
+}
+
+func TestRunGeneratesBindingsEndToEnd(t *testing.T) {
+	dir := t.TempDir()
+	schemaPath := filepath.Join(dir, "schema.sql")
+	queriesPath := filepath.Join(dir, "queries.sql")
+	outputPath := filepath.Join(dir, "bindings.go")
+	if err := os.WriteFile(schemaPath, []byte(`
+CREATE TABLE users (
+	id INTEGER PRIMARY KEY,
+	email TEXT NOT NULL
+);
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(queriesPath, []byte(`
+@import({ path: "example.com/app/models", alias: "models", schema: true })
+
+@query({ name: "FindUser" }) {
+	SELECT users.* FROM users WHERE id = $id;
+}
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := Run(Options{
+		SchemaPath:  schemaPath,
+		QueriesPath: queriesPath,
+		OutputPath:  outputPath,
+		Dialect:     model.DialectSQLite,
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	output, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	generated := string(output)
+	if !strings.Contains(generated, `models "example.com/app/models"`) {
+		t.Fatalf("generated output is missing schemas import:\n%s", generated)
+	}
+	if !strings.Contains(generated, "func FindUser(") {
+		t.Fatalf("generated output is missing query function:\n%s", generated)
+	}
+}
+
+func TestRunRejectsInvalidDialectBeforeReadingFiles(t *testing.T) {
+	err := Run(Options{Dialect: model.Dialect(255)})
+	if err == nil || !strings.Contains(err.Error(), "unsupported dialect") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
