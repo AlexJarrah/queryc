@@ -36,7 +36,7 @@ func TestGenerateUserConfigurationGoldenSnippet(t *testing.T) {
 		t.Fatalf("analyze queries: %v", err)
 	}
 
-	out, err := Generate(schema, queryFile.Imports, analyzed, model.DialectPostgres)
+	out, err := Generate(schema, queryFile.Imports, analyzed, model.DialectPostgres, "")
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}

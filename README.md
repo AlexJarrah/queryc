@@ -57,7 +57,7 @@ CREATE TABLE users (
 
 ## Generated Usage
 
-Generated code lives in a dialect package (`postgres` or `sqlite`). The schema-marked `@import` supplies the application-owned row types and the alias used in generated code.
+Generated code lives in the `--package` flag's value (defaults to dialect name). The schema-marked `@import` supplies the application-owned row types and the alias used in generated code.
 
 ```go
 query := postgres.GetUserByEmail("username@example.com")
@@ -77,12 +77,14 @@ Positional arguments:
 Flags:
 
 - `--dialect`: SQL dialect, supports PostgreSQL & SQLite
+- `--package`: generated Go package name (defaults to dialect name)
 
 Examples:
 
 ```bash
 queryc schema.sql queries.sql bindings.go --dialect sqlite
 queryc schemas/ queries/ bindings.go --dialect postgres
+queryc schema.sql queries.sql bindings.go --package db
 ```
 
 ---

@@ -11,7 +11,7 @@ import (
 	"github.com/AlexJarrah/queryc/internal/model"
 )
 
-const Usage = "usage: queryc <schema> <queries> <output> [--dialect postgres|sqlite]"
+const Usage = "usage: queryc <schema> <queries> <output> [--dialect postgres|sqlite] [--package name]"
 
 // IsHelp returns whether parsing stopped for a help request.
 func IsHelp(err error) bool {
@@ -20,11 +20,12 @@ func IsHelp(err error) bool {
 
 // Parse validates and returns command arguments as structured data.
 func Parse(args []string) (app.Options, error) {
-	var dialect string
+	var dialect, pkg string
 
 	fs := flag.NewFlagSet("queryc", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&dialect, "dialect", "postgres", "Database dialect (postgres, sqlite)")
+	fs.StringVar(&pkg, "package", "", "Generated Go package name (defaults to dialect name)")
 
 	if err := fs.Parse(normalizeFlagOrder(args)); err != nil {
 		return app.Options{}, err
@@ -44,6 +45,7 @@ func Parse(args []string) (app.Options, error) {
 		QueriesPath: fs.Arg(1),
 		OutputPath:  fs.Arg(2),
 		Dialect:     parsedDialect,
+		PackageName: strings.TrimSpace(pkg),
 	}, nil
 }
 
@@ -96,7 +98,7 @@ func isKnownFlag(arg string) bool {
 
 	name, _, _ = strings.Cut(name, "=")
 	switch name {
-	case "dialect":
+	case "dialect", "package":
 		return true
 	default:
 		return false

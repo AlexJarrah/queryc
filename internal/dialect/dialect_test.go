@@ -12,21 +12,21 @@ func TestDialectConfiguration(t *testing.T) {
 		integerType string
 		placeholder string
 		timestamp   string
-		packageName string
+		pkg         string
 	}{
 		{
 			dialect:     model.DialectPostgres,
 			integerType: "int32",
 			placeholder: "$2",
 			timestamp:   "NOW()",
-			packageName: "postgres",
+			pkg:         "postgres",
 		},
 		{
 			dialect:     model.DialectSQLite,
 			integerType: "int64",
 			placeholder: "?",
 			timestamp:   "datetime('now')",
-			packageName: "sqlite",
+			pkg:         "sqlite",
 		},
 	}
 
@@ -41,8 +41,8 @@ func TestDialectConfiguration(t *testing.T) {
 			if got := CurrentTimestamp(tc.dialect); got != tc.timestamp {
 				t.Fatalf("CurrentTimestamp() = %q, want %q", got, tc.timestamp)
 			}
-			if got := PackageName(tc.dialect); got != tc.packageName {
-				t.Fatalf("PackageName() = %q, want %q", got, tc.packageName)
+			if got := PackageName(tc.dialect); got != tc.pkg {
+				t.Fatalf("PackageName() = %q, want %q", got, tc.pkg)
 			}
 		})
 	}

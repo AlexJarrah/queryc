@@ -48,6 +48,40 @@ func TestParseDefaults(t *testing.T) {
 	if opts.Dialect != model.DialectPostgres {
 		t.Fatalf("unexpected defaults: %#v", opts)
 	}
+	if opts.PackageName != "" {
+		t.Fatalf("PackageName = %q, want empty default", opts.PackageName)
+	}
+}
+
+func TestParseAcceptsPackageFlag(t *testing.T) {
+	opts, err := Parse([]string{
+		"schema.sql",
+		"queries.sql",
+		"out.go",
+		"--package",
+		"db",
+	})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if opts.PackageName != "db" {
+		t.Fatalf("PackageName = %q, want db", opts.PackageName)
+	}
+}
+
+func TestParseAcceptsInlinePackageFlag(t *testing.T) {
+	opts, err := Parse([]string{
+		"schema.sql",
+		"queries.sql",
+		"out.go",
+		"--package=store",
+	})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if opts.PackageName != "store" {
+		t.Fatalf("PackageName = %q, want store", opts.PackageName)
+	}
 }
 
 func TestParseRejectsRemovedSchemaFlags(t *testing.T) {

@@ -55,6 +55,7 @@ type User struct {
 			imports,
 			nil,
 			dialect,
+			"",
 		)
 		if err != nil {
 			t.Fatalf("Generate(%d) error = %v", dialect, err)
@@ -66,6 +67,7 @@ type User struct {
 			nil,
 			nil,
 			dialect,
+			"",
 		)
 		if err != nil {
 			t.Fatalf("Generate(empty, %d) error = %v", dialect, err)

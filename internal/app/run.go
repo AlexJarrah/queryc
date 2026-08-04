@@ -18,6 +18,7 @@ type Options struct {
 	QueriesPath string
 	OutputPath  string
 	Dialect     model.Dialect
+	PackageName string
 }
 
 // Run generates bindings based on the options provided.
@@ -47,7 +48,7 @@ func Run(opts Options) error {
 		return fmt.Errorf("analyze queries: %w", err)
 	}
 
-	out, err := codegen.Generate(schema, queryFile.Imports, analyzed, opts.Dialect)
+	out, err := codegen.Generate(schema, queryFile.Imports, analyzed, opts.Dialect, opts.PackageName)
 	if err != nil {
 		return fmt.Errorf("generate code: %w", err)
 	}

@@ -25,7 +25,7 @@ func TestGenerateUsesSchemaImportAlias(t *testing.T) {
 		Alias:  "sc",
 		Schema: true,
 	}}
-	out, err := Generate(schema, imports, nil, model.DialectPostgres)
+	out, err := Generate(schema, imports, nil, model.DialectPostgres, "")
 	if err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
