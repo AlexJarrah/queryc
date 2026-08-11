@@ -54,6 +54,21 @@ func TestEmbeddedNullableJoinAndGeneratedStruct(t *testing.T) {
 	}
 }
 
+func TestLeftJoinLateralSubqueryFieldIsNullable(t *testing.T) {
+	schema, queries := loadFixtureQueries(t)
+	query := findQuery(t, queries, "GetUserEmailWithLateral")
+
+	analyzed, err := Query(schema, query, model.DialectPostgres)
+	if err != nil {
+		t.Fatalf("analyze query: %v", err)
+	}
+
+	field := findField(t, analyzed.Fields, "lateral_email")
+	if field.GoType != "*string" {
+		t.Fatalf("lateral_email GoType=%s, want *string", field.GoType)
+	}
+}
+
 func loadFixtureQueries(t *testing.T) (model.Schema, []model.Query) {
 	t.Helper()
 

@@ -23,7 +23,7 @@ var (
 	starSelectRe      = regexp.MustCompile(`^([a-zA-Z0-9_]+)\.\*$`)
 	fromJoinTableRe   = regexp.MustCompile(`(?is)\b(?:FROM|JOIN)\s+([a-zA-Z0-9_]+)(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?`)
 	fromTableRe       = regexp.MustCompile(`(?is)\bFROM\s+([a-zA-Z0-9_]+)(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?`)
-	joinKindTableRe   = regexp.MustCompile(`(?is)\b((?:LEFT|RIGHT|FULL)(?:\s+OUTER)?|INNER|CROSS)?\s*JOIN(?:\s+LATERAL)?\s+([a-zA-Z0-9_]+)(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?\s+ON`)
+	joinKindTableRe   = regexp.MustCompile(`(?is)\b((?:LEFT|RIGHT|FULL)(?:\s+OUTER)?|INNER|CROSS)?\s*JOIN(?:\s+LATERAL)?\s+([a-zA-Z0-9_]+|\(\))(?:\s+(?:AS\s+)?([a-zA-Z0-9_]+))?\s+ON`)
 	sliceValueAsRe    = regexp.MustCompile(`(?is)\bSELECT\s+(.+?)\s+AS\s+queryc_value\s+FROM\b`)
 )
 

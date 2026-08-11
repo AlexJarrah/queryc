@@ -59,6 +59,55 @@ RIGHT JOIN posts p ON p.user_id = u.user_id
 	}
 }
 
+func TestLeftJoinLateralSubqueryMarksAliasNullable(t *testing.T) {
+	tables, aliases := getTablesWithNullableJoin(`
+SELECT * FROM tracks t
+LEFT JOIN LATERAL (
+    SELECT a.name FROM albums a
+    WHERE a.track_id IN (1, 2)
+    LIMIT 1
+) al ON TRUE
+`)
+	if !aliases["al"] {
+		t.Fatalf("expected LATERAL subquery alias al to be marked nullable, tables=%v aliases=%v", tables, aliases)
+	}
+	if tables["al"] || tables["()"] {
+		t.Fatalf("did not expect subquery junk entries in tables, tables=%v aliases=%v", tables, aliases)
+	}
+	if tables["tracks"] || aliases["t"] {
+		t.Fatalf("did not expect tracks/t nullable, tables=%v aliases=%v", tables, aliases)
+	}
+}
+
+func TestRightJoinLateralSubqueryPreservesSubquerySide(t *testing.T) {
+	tables, aliases := getTablesWithNullableJoin(`
+SELECT * FROM tracks t
+RIGHT JOIN LATERAL (
+    SELECT a.name FROM albums a
+    LIMIT 1
+) al ON TRUE
+`)
+	if aliases["al"] || tables["al"] {
+		t.Fatalf("did not expect LATERAL subquery alias al nullable, tables=%v aliases=%v", tables, aliases)
+	}
+	if !tables["tracks"] && !aliases["t"] {
+		t.Fatalf("expected tracks/t nullable, tables=%v aliases=%v", tables, aliases)
+	}
+}
+
+func TestFullJoinLateralSubqueryMarksBothSidesNullable(t *testing.T) {
+	tables, aliases := getTablesWithNullableJoin(`
+SELECT * FROM tracks t
+FULL JOIN LATERAL (
+    SELECT a.name FROM albums a
+    LIMIT 1
+) al ON TRUE
+`)
+	if !aliases["al"] || !aliases["t"] {
+		t.Fatalf("expected both t and al nullable, tables=%v aliases=%v", tables, aliases)
+	}
+}
+
 func TestAnalyzeQueryRejectsUnresolvedResultType(t *testing.T) {
 	query := model.Query{
 		Name:      "UnknownResult",

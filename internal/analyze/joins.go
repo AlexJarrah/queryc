@@ -116,7 +116,7 @@ func getTablesWithNullableJoin(sql string) (map[string]bool, map[string]bool) {
 		isFull := strings.HasPrefix(joinKind, "FULL")
 
 		if isLeft || isFull {
-			if table != "" {
+			if table != "" && !strings.HasPrefix(table, "(") {
 				tables[table] = true
 			}
 			aliases[alias] = true
@@ -124,7 +124,7 @@ func getTablesWithNullableJoin(sql string) (map[string]bool, map[string]bool) {
 
 		if isRight || isFull {
 			for _, prev := range seenOrder {
-				if prev[0] != "" {
+				if prev[0] != "" && !strings.HasPrefix(prev[0], "(") {
 					tables[prev[0]] = true
 				}
 				aliases[prev[1]] = true
@@ -144,23 +144,18 @@ func maskNestedSQL(sql string) string {
 		ch := sql[i]
 		switch ch {
 		case '(':
+			if depth == 0 {
+				out.WriteString("()")
+			}
 			depth++
-			out.WriteByte(ch)
 		case ')':
 			if depth > 0 {
 				depth--
 			}
-			out.WriteByte(ch)
 		default:
-			if depth > 0 {
-				if ch == '\n' || ch == '\t' || ch == '\r' {
-					out.WriteByte(ch)
-				} else {
-					out.WriteByte(' ')
-				}
-				continue
+			if depth == 0 {
+				out.WriteByte(ch)
 			}
-			out.WriteByte(ch)
 		}
 	}
 	return out.String()
