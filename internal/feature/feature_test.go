@@ -32,8 +32,8 @@ func TestStructNestedInSliceConversion(t *testing.T) {
 	if !strings.Contains(sql, "jsonb_build_object('tag', ut.tag, 'source', ut.source)") {
 		t.Fatalf("expected jsonb_build_object output, got %q", sql)
 	}
-	if !strings.Contains(sql, "json_agg(DISTINCT") {
-		t.Fatalf("expected distinct json_agg output, got %q", sql)
+	if !strings.Contains(sql, "jsonb_agg(DISTINCT") {
+		t.Fatalf("expected distinct jsonb_agg output, got %q", sql)
 	}
 }
 
@@ -46,6 +46,33 @@ func TestStructFieldAllowsTrailingAlias(t *testing.T) {
 
 	if !strings.Contains(sql, "jsonb_build_object('enabled', uc.email_notifications:bool, 'timezone', uc.timezone:string)") {
 		t.Fatalf("expected trailing alias to be ignored inside struct, got %q", sql)
+	}
+}
+
+func TestDistinctSliceUsesJSONBAggForPostgres(t *testing.T) {
+	registry := NewRegistry()
+	sql, err := registry.Convert(`SELECT @slice(DISTINCT ar.artist_id) AS artist_ids`, model.DialectPostgres)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+
+	if !strings.Contains(sql, "COALESCE(jsonb_agg(DISTINCT ar.artist_id) FILTER (WHERE ar.artist_id IS NOT NULL), '[]'::jsonb)") {
+		t.Fatalf("expected jsonb_agg DISTINCT with FILTER, got %q", sql)
+	}
+	if strings.Contains(sql, "json_agg(DISTINCT") {
+		t.Fatalf("json_agg with DISTINCT fails on postgres (no equality for json), got %q", sql)
+	}
+}
+
+func TestNonDistinctSliceKeepsJSONAggForPostgres(t *testing.T) {
+	registry := NewRegistry()
+	sql, err := registry.Convert(`SELECT @slice(ar.artist_id) AS artist_ids`, model.DialectPostgres)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+
+	if !strings.Contains(sql, "json_agg(ar.artist_id)") {
+		t.Fatalf("expected json_agg output for non-distinct slice, got %q", sql)
 	}
 }
 

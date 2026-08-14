@@ -39,6 +39,9 @@ func sliceHandler(content string, dialect model.Dialect) (string, error) {
 	if dialect == model.DialectSQLite {
 		return fmt.Sprintf("%sCOALESCE(json_group_array(%s%s), '[]')", jsonMarker, distinctPrefix, expr), nil
 	}
+	if distinct {
+		return fmt.Sprintf("%sCOALESCE(jsonb_agg(%s%s) FILTER (WHERE %s IS NOT NULL), '[]'::jsonb)", jsonMarker, distinctPrefix, expr, expr), nil
+	}
 	return fmt.Sprintf("%sCOALESCE(json_agg(%s%s) FILTER (WHERE %s IS NOT NULL), '[]'::json)", jsonMarker, distinctPrefix, expr, expr), nil
 }
 
