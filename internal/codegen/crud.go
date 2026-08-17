@@ -23,6 +23,7 @@ func writeCRUD(buf *bytes.Buffer, schema model.Schema, d model.Dialect, schemasP
 		}
 		writeGetAll(buf, tableName, structName, table, d, schemasPkg)
 		writeGet(buf, tableName, singular, table, d, schemasPkg)
+		writeGetMany(buf, tableName, structName, singular, table, d, schemasPkg)
 		writeDelete(buf, tableName, singular, table, d)
 		writeUpdate(buf, tableName, singular, table, d, schemasPkg)
 		writeSet(buf, tableName, singular, table, d, schemasPkg)
@@ -110,6 +111,73 @@ func writeGet(buf *bytes.Buffer, tableName, singular string, table model.Table, 
 	buf.WriteString("\t\t},\n\t}\n}\n\n")
 }
 
+func writeGetMany(buf *bytes.Buffer, tableName, structName, singular string, table model.Table, d model.Dialect, schemasPkg string) {
+	resultType := schemasPkg + "." + singular
+	multiPK := len(table.PrimaryKeys) > 1
+
+	argName := "keys"
+	if !multiPK {
+		argName = sanitizeName(table.PrimaryKeys[0] + "s")
+	}
+
+	if multiPK {
+		fmt.Fprintf(buf, "type %sPKs struct {\n", singular)
+		for _, pk := range table.PrimaryKeys {
+			fmt.Fprintf(buf, "\t%s %s\n", parse.ToPascal(pk), dialect.GoTypeForSQL(d, table.Columns[pk].SQLType))
+		}
+		buf.WriteString("}\n\n")
+	}
+
+	argType := "[]" + singular + "PKs"
+	if !multiPK {
+		argType = "[]" + dialect.GoTypeForSQL(d, table.Columns[table.PrimaryKeys[0]].SQLType)
+	}
+
+	fmt.Fprintf(buf, "func Get%s(%s %s) %s {\n", structName, argName, argType, runtimeQueryType(resultType))
+	fmt.Fprintf(buf, "\tif len(%s) == 0 {\n", argName)
+	fmt.Fprintf(buf, "\t\treturn &querycruntime.Query[%s]{Error: fmt.Errorf(%q)}\n\t}\n", resultType, argName+" slice cannot be empty")
+	buf.WriteString("\tvar parts []string\n\tvar args []any\n")
+	if d == model.DialectPostgres {
+		buf.WriteString("\tcounter := 1\n")
+	}
+	fmt.Fprintf(buf, "\tfor _, k := range %s {\n", argName)
+
+	if multiPK {
+		for _, pk := range table.PrimaryKeys {
+			fmt.Fprintf(buf, "\t\targs = append(args, k.%s)\n", parse.ToPascal(pk))
+		}
+		buf.WriteString("\t\tvar conds []string\n")
+		for i, pk := range table.PrimaryKeys {
+			if d == model.DialectPostgres {
+				fmt.Fprintf(buf, "\t\tconds = append(conds, fmt.Sprintf(%q, counter+%d))\n", pk+" = $%d", i)
+			} else {
+				fmt.Fprintf(buf, "\t\tconds = append(conds, %q)\n", pk+" = ?")
+			}
+		}
+		buf.WriteString("\t\tparts = append(parts, \"(\"+strings.Join(conds, \" AND \")+\")\")\n")
+		if d == model.DialectPostgres {
+			fmt.Fprintf(buf, "\t\tcounter += %d\n", len(table.PrimaryKeys))
+		}
+	} else {
+		buf.WriteString("\t\targs = append(args, k)\n")
+		if d == model.DialectPostgres {
+			buf.WriteString("\t\tparts = append(parts, fmt.Sprintf(\"$%d\", counter))\n")
+			buf.WriteString("\t\tcounter++\n")
+		} else {
+			buf.WriteString("\t\tparts = append(parts, \"?\")\n")
+		}
+	}
+	buf.WriteString("\t}\n")
+
+	if multiPK {
+		fmt.Fprintf(buf, "\tquery := `SELECT * FROM %s WHERE ` + strings.Join(parts, \" OR \")\n", tableName)
+	} else {
+		fmt.Fprintf(buf, "\tquery := `SELECT * FROM %s WHERE %s IN (` + strings.Join(parts, \", \") + `)`\n", tableName, table.PrimaryKeys[0])
+	}
+
+	fmt.Fprintf(buf, "\treturn &querycruntime.Query[%s]{\n\t\tSQL: query,\n\t\tArgs: args,\n\t}\n}\n\n", resultType)
+}
+
 func writeDelete(buf *bytes.Buffer, tableName, singular string, table model.Table, d model.Dialect) {
 	sig, _, names := pkSignature(table, d)
 	resultType := "struct{}"
@@ -174,6 +242,7 @@ func writeSet(buf *bytes.Buffer, tableName, singular string, table model.Table, 
 	}
 	buf.WriteString("\t\t},\n\t}\n}\n\n")
 }
+
 func writePKValidation(buf *bytes.Buffer, table model.Table, rowVar, resultType string) {
 	for _, pk := range table.PrimaryKeys {
 		if slices.Contains(table.AutoFields, pk) {

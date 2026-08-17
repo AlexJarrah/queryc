@@ -305,6 +305,7 @@ Add, Get, Update, Delete, and Set functions use the table's primary key(s) as th
 AddUser(row *schemas.User)
 AddManyUsers(rows []schemas.User)
 GetUser(user_id uuid.UUID)
+GetUsers(user_ids []uuid.UUID)
 GetAllUsers()
 UpdateUser(user_id uuid.UUID, row *schemas.User)
 DeleteUser(user_id uuid.UUID)

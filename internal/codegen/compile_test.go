@@ -32,6 +32,12 @@ type User struct {
 	ID    int64  `+"`db:\"id\"`"+`
 	Email string `+"`db:\"email\"`"+`
 }
+
+type UserMembership struct {
+	UserID int64  `+"`db:\"user_id\"`"+`
+	OrgID  int64  `+"`db:\"org_id\"`"+`
+	Role   string `+"`db:\"role\"`"+`
+}
 `)
 
 	schema := model.Schema{Tables: map[string]model.Table{
@@ -42,6 +48,15 @@ type User struct {
 				"email": {Name: "email", SQLType: "TEXT"},
 			},
 			PrimaryKeys: []string{"id"},
+		},
+		"user_memberships": {
+			Name: "user_memberships",
+			Columns: map[string]model.Column{
+				"user_id": {Name: "user_id", SQLType: "INTEGER"},
+				"org_id":  {Name: "org_id", SQLType: "INTEGER"},
+				"role":    {Name: "role", SQLType: "TEXT"},
+			},
+			PrimaryKeys: []string{"user_id", "org_id"},
 		},
 	}}
 	imports := []model.Import{{

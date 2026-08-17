@@ -58,9 +58,13 @@ func validateGenerationInputs(schema model.Schema, queries []model.AnalyzedQuery
 				tableDecls,
 				tableDecl{name: "GetAll" + structName, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 				tableDecl{name: "Get" + singular, kind: fmt.Sprintf("table %q CRUD function", tableName)},
+				tableDecl{name: "Get" + structName, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 				tableDecl{name: "Delete" + singular, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 				tableDecl{name: "Set" + singular, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 			)
+			if len(table.PrimaryKeys) > 1 {
+				tableDecls = append(tableDecls, tableDecl{name: singular + "PKs", kind: fmt.Sprintf("table %q composite key type", tableName)})
+			}
 			if len(nonPKColumns(table)) > 0 {
 				tableDecls = append(tableDecls, tableDecl{name: "Update" + singular, kind: fmt.Sprintf("table %q CRUD function", tableName)})
 			}
