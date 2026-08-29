@@ -56,6 +56,7 @@ func validateGenerationInputs(schema model.Schema, queries []model.AnalyzedQuery
 		if len(table.PrimaryKeys) > 0 {
 			tableDecls = append(
 				tableDecls,
+				tableDecl{name: singular + "PrimaryKeys", kind: fmt.Sprintf("table %q primary keys type", tableName)},
 				tableDecl{name: "GetAll" + structName, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 				tableDecl{name: "Get" + singular, kind: fmt.Sprintf("table %q CRUD function", tableName)},
 				tableDecl{name: "Get" + structName, kind: fmt.Sprintf("table %q CRUD function", tableName)},

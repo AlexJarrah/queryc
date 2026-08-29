@@ -37,6 +37,7 @@ func Generate(schema model.Schema, imports []model.Import, queries []model.Analy
 
 	writeImports(&buf, imports, d, schema, queries)
 	writeConstants(&buf, schema)
+	writePrimaryKeys(&buf, schema, d)
 	writeCustomQueries(&buf, queries, schemasPkg)
 	writeCRUD(&buf, schema, d, schemasPkg)
 	if d == model.DialectPostgres {

@@ -27,10 +27,6 @@ func writeImports(buf *bytes.Buffer, userImports []model.Import, d model.Dialect
 		imports["strings"] = model.Import{Path: "strings"}
 	}
 
-	if needsUUID(schema, queries, d) {
-		imports["github.com/google/uuid"] = model.Import{Path: "github.com/google/uuid"}
-	}
-
 	for _, imp := range userImports {
 		imports[imp.Path] = imp
 	}
@@ -103,42 +99,4 @@ func hasDynamicQueries(queries []model.AnalyzedQuery) bool {
 func isStdlibImport(path string) bool {
 	first, _, _ := strings.Cut(path, "/")
 	return !strings.Contains(first, ".")
-}
-
-func needsUUID(schema model.Schema, queries []model.AnalyzedQuery, d model.Dialect) bool {
-	for _, table := range schema.Tables {
-		for _, primaryKey := range table.PrimaryKeys {
-			if strings.Contains(dialect.GoTypeForSQL(d, table.Columns[primaryKey].SQLType), "uuid.") {
-				return true
-			}
-		}
-	}
-
-	for _, analyzed := range queries {
-		for _, p := range analyzed.Query.Params {
-			if strings.Contains(p.Type, "uuid.") {
-				return true
-			}
-		}
-
-		for _, h := range analyzed.Query.Hashtags {
-			if strings.Contains(h.Type, "uuid.") {
-				return true
-			}
-		}
-
-		for _, f := range analyzed.Fields {
-			if strings.Contains(f.GoType, "uuid.") {
-				return true
-			}
-
-			for _, generated := range f.GeneratedFields {
-				if strings.Contains(generated.GoType, "uuid.") {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }

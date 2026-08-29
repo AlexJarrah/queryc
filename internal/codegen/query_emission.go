@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/AlexJarrah/queryc/internal/dialect"
 	"github.com/AlexJarrah/queryc/internal/model"
 	"github.com/AlexJarrah/queryc/internal/parse"
 )
@@ -53,6 +54,24 @@ func writeConstants(buf *bytes.Buffer, schema model.Schema) {
 			fmt.Fprintf(buf, "\t\t%s,\n", defaultableFieldConst(name, col))
 		}
 		buf.WriteString("\t}\n}\n\n")
+	}
+}
+
+func writePrimaryKeys(buf *bytes.Buffer, schema model.Schema, d model.Dialect) {
+	for _, tableName := range sortedTables(schema) {
+		table := schema.Tables[tableName]
+		if len(table.PrimaryKeys) == 0 {
+			continue
+		}
+		singular := parse.ToSingular(parse.ToPascal(tableName))
+		typeName := singular + "PrimaryKeys"
+		fmt.Fprintf(buf, "type %s struct {\n", typeName)
+		for _, pk := range table.PrimaryKeys {
+			fieldName := parse.ToPascal(pk)
+			goType := dialect.GoTypeForSQL(d, table.Columns[pk].SQLType)
+			fmt.Fprintf(buf, "\t%s %s `json:\"%s\"`\n", fieldName, goType, pk)
+		}
+		buf.WriteString("}\n\n")
 	}
 }
 
