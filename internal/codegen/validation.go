@@ -92,6 +92,22 @@ func validateGenerationInputs(schema model.Schema, queries []model.AnalyzedQuery
 				return err
 			}
 		}
+
+		if cols := defaultableColumns(table); len(cols) > 0 {
+			defType := defaultableFieldType(tableName)
+			if err := declare(defType, fmt.Sprintf("table %q defaultable field type", tableName)); err != nil {
+				return err
+			}
+			for _, column := range cols {
+				if err := declare(defaultableFieldConst(tableName, column), fmt.Sprintf("defaultable column %q on table %q constant", column, tableName)); err != nil {
+					return err
+				}
+			}
+			funcName := structName + "DefaultableFields"
+			if err := declare(funcName, fmt.Sprintf("table %q defaultable fields func", tableName)); err != nil {
+				return err
+			}
+		}
 	}
 
 	for _, analyzed := range queries {

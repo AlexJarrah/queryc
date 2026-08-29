@@ -17,6 +17,7 @@ var (
 	primaryKeyRe      = regexp.MustCompile(`(?i)^PRIMARY\s+KEY\s*\((.*?)\)`)
 	tableConstraintRe = regexp.MustCompile(`(?i)^(FOREIGN|UNIQUE|CHECK|CONSTRAINT|EXCLUDE)\s`)
 	columnDefRe       = regexp.MustCompile(`(?is)^([a-zA-Z0-9_]+)\s+(.+)$`)
+	defaultRe         = regexp.MustCompile(`(?i)\bDEFAULT\b`)
 )
 
 // SchemaFile reads and parses schema SQL from a file or directory.
@@ -124,11 +125,13 @@ func parseColumn(line string, typeKeys []string, d model.Dialect) (model.Column,
 	} else {
 		auto = strings.Contains(code, "GENERATED") || baseType == "SERIAL" || baseType == "BIGSERIAL" || baseType == "SMALLSERIAL"
 	}
+	hasDefault := defaultRe.MatchString(code)
 
 	return model.Column{
-		Name:     colName,
-		SQLType:  baseType,
-		Nullable: !isNotNull,
+		Name:       colName,
+		SQLType:    baseType,
+		Nullable:   !isNotNull,
+		HasDefault: hasDefault,
 	}, auto, colName == "updated_at", strings.Contains(code, "PRIMARY KEY"), true
 }
 

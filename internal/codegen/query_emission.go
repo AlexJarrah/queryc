@@ -32,6 +32,28 @@ func writeConstants(buf *bytes.Buffer, schema model.Schema) {
 		}
 		buf.WriteString(")\n\n")
 	}
+
+	for _, name := range tableNames {
+		table := schema.Tables[name]
+		cols := defaultableColumns(table)
+		if len(cols) == 0 {
+			continue
+		}
+		fieldType := defaultableFieldType(name)
+		fmt.Fprintf(buf, "type %s string\n\n", fieldType)
+		buf.WriteString("const (\n")
+		for _, col := range cols {
+			fmt.Fprintf(buf, "\t%s %s = %q\n", defaultableFieldConst(name, col), fieldType, col)
+		}
+		buf.WriteString(")\n\n")
+		funcName := parse.ToPascal(name) + "DefaultableFields"
+		fmt.Fprintf(buf, "func %s() []%s {\n", funcName, fieldType)
+		fmt.Fprintf(buf, "\treturn []%s{\n", fieldType)
+		for _, col := range cols {
+			fmt.Fprintf(buf, "\t\t%s,\n", defaultableFieldConst(name, col))
+		}
+		buf.WriteString("\t}\n}\n\n")
+	}
 }
 
 func writeCustomQueries(buf *bytes.Buffer, queries []model.AnalyzedQuery, schemasPkg string) {

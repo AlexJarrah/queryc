@@ -11,9 +11,10 @@ const (
 
 // Column describes one schema column.
 type Column struct {
-	Name     string
-	SQLType  string
-	Nullable bool
+	Name       string
+	SQLType    string
+	Nullable   bool
+	HasDefault bool
 }
 
 // Table describes a parsed schema table.
