@@ -163,15 +163,7 @@ func writeGetMany(buf *bytes.Buffer, tableName, structName, singular string, tab
 		argName = sanitizeName(table.PrimaryKeys[0] + "s")
 	}
 
-	if multiPK {
-		fmt.Fprintf(buf, "type %sPKs struct {\n", singular)
-		for _, pk := range table.PrimaryKeys {
-			fmt.Fprintf(buf, "\t%s %s\n", parse.ToPascal(pk), dialect.GoTypeForSQL(d, table.Columns[pk].SQLType))
-		}
-		buf.WriteString("}\n\n")
-	}
-
-	argType := "[]" + singular + "PKs"
+	argType := "[]" + singular + "PrimaryKeys"
 	if !multiPK {
 		argType = "[]" + dialect.GoTypeForSQL(d, table.Columns[table.PrimaryKeys[0]].SQLType)
 	}
